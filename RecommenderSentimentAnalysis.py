@@ -76,6 +76,7 @@ for result in tweets:
                             index = csvRow2.index(keyword['text'])
                             value = csvRow3[index]
                             score = response['sentiment']['document']['score'];
+                            print(index,score+value)
                             csvRow3.insert(index, score+value)
                         except:
                             csvRow2.append(keyword['text']);

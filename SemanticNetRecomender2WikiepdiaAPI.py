@@ -1,5 +1,4 @@
 import re
-from amazon.api import AmazonAPI
 import tweepy
 import csv
 import spacy
