@@ -52,6 +52,8 @@ def wikicategories(category):
     if len(category) > 2 and page_py.exists() and ("refer to:" != page_py.summary[-9:]):
         return True
     return False
+
+
 print(wikicategories("movie"))
 
 statuses = api.user_timeline(

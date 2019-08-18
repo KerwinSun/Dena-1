@@ -38,3 +38,19 @@ def getProducts(categoricalEntityList,namedEntityList):
                 print(e)
                 print(e.response.dict())
 
+
+def getProductsForRecommender(categoricalEntityList):
+
+    for i in range(len(categoricalEntityList)):
+        try:
+            api = Finding(appid="KerwinSu-Dena-PRD-344818667-e4b5e25e", config_file='myebay.yaml')
+            namedResponse = api.execute('findItemsAdvanced', {'keywords': categoricalEntityList[i]})
+            result=namedResponse.json();
+            print(result);
+        except ConnectionError as e:
+            print(e)
+            print(e.response.dict())
+
+
+
+

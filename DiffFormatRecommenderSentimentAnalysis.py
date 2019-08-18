@@ -11,11 +11,6 @@ import spacy
 from textblob.taggers import NLTKTagger
 from TaxonomySearcher import TaxonomySearcher
 import re
-service = NaturalLanguageUnderstandingV1(
-    version='2018-03-16',
-    url='https://gateway.watsonplatform.net/natural-language-understanding/api',
-    iam_apikey='3lu4pe1GCX_ey2JIq5fTh5MjccYo0peTs8PgUCOW6Jw8')
-
 writefile = open('user-id-sentiment-category_and_score', 'a', newline='')
 userwritefile = open('user-id', 'a', newline='')
 itemwritefile = open('item-id', 'a', newline='')
@@ -65,21 +60,23 @@ def addDataRow(userid,item,rating,csvwriter):
     csvrow = [userid,item,rating]
     csvwriter.writerow(csvrow)
 
+def line_prepender(filename, line):
+    with open(filename, 'r+') as f:
+        content = f.read()
+        f.seek(0, 0)
+        f.write(line.rstrip('\r\n') + '\n' + content)
 
-for result in tweets:
 
-    if result.user.id in userId:
-        continue
-    else:
-        userId.add(result.user.id)
-
-    statuses = tweepy.Cursor(api.user_timeline,
-                             user_id=result.user.id, include_rts=False, exclude_replies=True, tweet_mode="extended").items(5)
-    addDataRow(i, result.user.name, result.user.id, userwriter)
+def recommendItemForUser(username):
+    user = api.get_user(username)
+    print(user)
+    userid = -1;
+    statuses = api.user_timeline(
+        user_id=userid, include_rts=False, exclude_replies=True, tweet_mode="extended", count=100)
     for status in statuses:
         target_tweet = clean(status.full_text)
         blob = TextBlob(target_tweet, pos_tagger=nltk_tagger)
-        if (True):
+        if True:
             try:
                 print(status.full_text)
                 doc = nlp("u"+clean(status.full_text));
@@ -90,18 +87,13 @@ for result in tweets:
                     tag = taggedTuple[1]
                     if tag in good_PoS_Tags and wikicategories(keyword.lower()) and keyword.lower() != "gift":
                         itemId.add(keyword)
-                        addDataRow(i, keyword, blob.sentiment.polarity, writer)
-                        addDataRow(i, keyword, "", itemwriter)
+                        line_prepender("user-id-sentiment-category_and_score", "-1,"+keyword + "," + blob.sentiment.polarity)
 
                 for ent in doc.ents:
                     if ent.label_ in good_labels:
-                        try:
                             itemId.add(ent.text)
                             print("Entity:" + ent.text + ent.label_)
-                            addDataRow(i, ent.text, blob.sentiment.polarity, writer)
-                        except:
-                            print("Entity:" + ent.text+ent.label_)
-                            addDataRow(i, ent.text, blob.sentiment.polarity, writer)
+                            line_prepender("user-id-sentiment-category_and_score", "-1,"+ent.text + "," + ent.text)
 
                 if len(status.entities.get("media", "")) != 0:
                     imageList = status.entities.get("media", "");
@@ -115,19 +107,81 @@ for result in tweets:
                         os.remove("local-filename.jpg")
                         for eachObject in detections:
                             if searcher.searchTaxMap(keyword['text']):
-                                try:
-                                    itemId.add(keyword['text'])
-                                    addDataRow(i, eachObject["name"], blob.sentiment.polarity, writer)
-                                except:
-                                    addDataRow(i, eachObject["name"], blob.sentiment.polarity, writer)
+                                    line_prepender("user-id-sentiment-category_and_score", "-1,"+eachObject["name"] + "," + ent.text)
+
             except:
                 response = {};
                 print("tweet has unsupported languages")
-    i += 1
-    print(i)
-writefile.close()
-userwritefile.close()
-itemwritefile.close()
+
+
+
+
+
+
+
+
+# for result in tweets:
+#
+#     if result.user.id in userId:
+#         continue
+#     else:
+#         userId.add(result.user.id)
+#
+#     statuses = tweepy.Cursor(api.user_timeline,
+#                              user_id=result.user.id, include_rts=False, exclude_replies=True, tweet_mode="extended").items(5)
+#     addDataRow(i, result.user.name, result.user.id, userwriter)
+#     for status in statuses:
+#         target_tweet = clean(status.full_text)
+#         blob = TextBlob(target_tweet, pos_tagger=nltk_tagger)
+#         if (True):
+#             try:
+#                 print(status.full_text)
+#                 doc = nlp("u"+clean(status.full_text));
+#                 # sentiment analysis here
+#                 keywords = blob.pos_tags
+#                 for taggedTuple in keywords:
+#                     keyword = taggedTuple[0]
+#                     tag = taggedTuple[1]
+#                     if tag in good_PoS_Tags and wikicategories(keyword.lower()) and keyword.lower() != "gift":
+#                         itemId.add(keyword)
+#                         addDataRow(i, keyword, blob.sentiment.polarity, writer)
+#                         addDataRow(i, keyword, "", itemwriter)
+#
+#                 for ent in doc.ents:
+#                     if ent.label_ in good_labels:
+#                         try:
+#                             itemId.add(ent.text)
+#                             print("Entity:" + ent.text + ent.label_)
+#                             addDataRow(i, ent.text, blob.sentiment.polarity, writer)
+#                         except:
+#                             print("Entity:" + ent.text+ent.label_)
+#                             addDataRow(i, ent.text, blob.sentiment.polarity, writer)
+#
+#                 if len(status.entities.get("media", "")) != 0:
+#                     imageList = status.entities.get("media", "");
+#                     imageurl = imageList[0].get("media_url", "")
+#                     with urllib.request.urlopen(imageurl) as url:
+#                         q = urllib.request.urlretrieve(imageurl, "local-filename.jpg");
+#                         detections = detector.detectObjectsFromImage(
+#                             input_image=os.path.join(execution_path, "local-filename.jpg"),
+#                             output_image_path=os.path.join(execution_path, "imagenew.jpg"))
+#                         os.remove("imagenew.jpg")
+#                         os.remove("local-filename.jpg")
+#                         for eachObject in detections:
+#                             if searcher.searchTaxMap(keyword['text']):
+#                                 try:
+#                                     itemId.add(keyword['text'])
+#                                     addDataRow(i, eachObject["name"], blob.sentiment.polarity, writer)
+#                                 except:
+#                                     addDataRow(i, eachObject["name"], blob.sentiment.polarity, writer)
+#             except:
+#                 response = {};
+#                 print("tweet has unsupported languages")
+#     i += 1
+#     print(i)
+# writefile.close()
+# userwritefile.close()
+# itemwritefile.close()
 
 
 
