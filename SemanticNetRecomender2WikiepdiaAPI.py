@@ -6,10 +6,11 @@ from TaxonomySearcher import TaxonomySearcher
 from textblob import TextBlob
 from textblob.np_extractors import ConllExtractor
 from textblob.taggers import NLTKTagger
-from textblob.wordnet import Synset
 from textblob import Word
 import string
 import wikipediaapi
+import operator
+import EbayProductFinding
 
 wiki_wiki = wikipediaapi.Wikipedia('en')
 page_py = wiki_wiki.page('lebron')
@@ -34,7 +35,7 @@ file = open('TaxonomyUserTarget.csv', 'a', newline='', encoding="utf-8")
 writer = csv.writer(file)
 
 
-user = api.get_user("wewweowew")
+user = api.get_user("ichendawg")
 print(user)
 userid = user.id
 
@@ -78,6 +79,7 @@ file.close()
 
 entityDict = {}
 NamedEntityDict = {}
+CategoricalEntityDict = {}
 
 for status in statuses:
 
@@ -114,12 +116,11 @@ for status in statuses:
         doc = npl(target_tweet)
         for entity in doc.ents:
             if entity.label_ in good_labels:
-                NamedEntityDict[entity.text] = "";
+                NamedEntityDict[entity.text.lower()] = 0;
 
     except Exception as e:
         print(e)
 
-print(entityDict)
 
 #TODO: algorithm for extracting multiword entites e.g "gift cards"
 
@@ -134,12 +135,14 @@ for entity in entityDict:
     if len(nets) > 0:
         net = nets[0]
         synsetDict[entity] = net
+        CategoricalEntityDict[entity] = entityDict[entity]
     else:
         NamedEntityDict[entity] = entityDict[entity]
         print(entity + " - added to named entity list")
 
 print(synsetDict)
 
+'''
 ##calculate entity with largest synset similarity score
 synsetScoreDict = {}
 
@@ -158,5 +161,13 @@ for synsetEntity in synsetDict:
                 synsetScoreDict[synsetEntity] += score
 
 print(synsetScoreDict)
-print(NamedEntityDict)
+'''
+sorted_categoricalEntityDict = sorted(CategoricalEntityDict.items(), key=operator.itemgetter(1), reverse=True)
+sorted_namedEntityDict = sorted(NamedEntityDict.items(), key=operator.itemgetter(1), reverse=True)
+
+print(sorted_categoricalEntityDict)
+print(sorted_namedEntityDict)
+
+EbayProductFinding.getProducts(sorted_categoricalEntityDict, sorted_namedEntityDict)
+
 
