@@ -46,9 +46,6 @@ def get_top_n(predictions, n=10):
 
     return top_n
 
-
-
-
 r_cols = ['user_id', 'item_id', 'rating']
 ratings = pd.read_csv('user-id-sentiment-category_and_score', names=r_cols)
 items = pd.read_csv('item-id', names=['item_id', 'item_name', 'placeholder'])
@@ -56,14 +53,15 @@ users = pd.read_csv('user-id',names=['user_id', 'user_name', 'twitter_id'])
 n_items = ratings.item_id.unique().shape[0]
 n_users = ratings.user_id.unique().shape[0]
 data_matrix = np.zeros((n_users, n_items))
-train_data = turicreate.SFrame(ratings)
-
-#Training the model
-item_sim_model = turicreate.item_similarity_recommender.create(train_data, user_id='user_id', item_id='item_id', target='rating', similarity_type='cosine')
-
-#Making recommendations
-item_sim_recomm = item_sim_model.recommend(users=[1,2,3,4,5],k=5)
-item_sim_recomm.print_rows(num_rows=25)
+# train_data = turicreate.SFrame(ratings)
+#
+#
+# #Training the model
+# item_sim_model = turicreate.item_similarity_recommender.create(train_data, user_id='user_id', item_id='item_id', target='rating', similarity_type='cosine')
+#
+# #Making recommendations
+# item_sim_recomm = item_sim_model.recommend(users=[1,2,3,4,5],k=5)
+# item_sim_recomm.print_rows(num_rows=25)
 
 
 reader = Reader(rating_scale=(-1, 1))

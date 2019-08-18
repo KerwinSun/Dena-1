@@ -1,15 +1,16 @@
 import csv
+import string
 import urllib.request
 import os
 import tweepy
+import wikipediaapi
 from imageai.Detection import ObjectDetection
 from ibm_watson import NaturalLanguageUnderstandingV1
-from ibm_watson.natural_language_understanding_v1 import Features, EntitiesOptions, KeywordsOptions, CategoriesOptions, SentimentOptions
 from textblob import TextBlob
-from spacy.pipeline import EntityRuler
 import spacy
+from textblob.taggers import NLTKTagger
 from TaxonomySearcher import TaxonomySearcher
-
+import re
 service = NaturalLanguageUnderstandingV1(
     version='2018-03-16',
     url='https://gateway.watsonplatform.net/natural-language-understanding/api',
@@ -25,24 +26,36 @@ consumer_key = "uqKb1h9prIwbAVCqocBuqInFs"
 consumer_secret = "EXlWGr7VFTGJ00116M25mDWyNveORVkHVPGXHaAOsg1lwFUQn8"
 access_token = "2388347288-uEH2UbQnr2uZYCZDuvh93wD8UHZ3PMB15diH9tK"
 access_token_secret ="RCXSN3rj4m04ECekNo3DnF2u7B4G7AJauZXs3DmbX14dc"
+wiki_wiki = wikipediaapi.Wikipedia('en')
 auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_token, access_token_secret)
 api = tweepy.API(auth,wait_on_rate_limit=True,wait_on_rate_limit_notify=True)
 tweets = tweepy.Cursor(api.search,
-                       q="gift",lang="en",result_type='mixed').items(100);
+                       q="gift",lang="en",result_type='mixed').items(45);
 execution_path = os.getcwd()
+good_PoS_Tags = ["NN", "NNS", "NNP", "NNPS"]
 detector = ObjectDetection()
 detector.setModelTypeAsRetinaNet()
-detector.setModelPath( os.path.join(execution_path , "resnet50_coco_best_v2.0.1.h5"))
+detector.setModelPath(os.path.join(execution_path , "resnet50_coco_best_v2.0.1.h5"))
 detector.loadModel()
 searcher = TaxonomySearcher();
 nlp = spacy.load("en_core_web_lg")
+nltk_tagger = NLTKTagger()
 count = 0
 good_labels = ["PERSON", "FACILITY", "ORG", "GPE", "LOC", "PRODUCT", "EVENT", "WORK OF ART", "LANGUAGE"]
 
-def deEmojify(inputString):
+def clean(inputString):
+    inputString = re.sub(r"http\S+", "", inputString)
+    inputString = re.sub(r"@\S+", "", inputString)
+    printable = set(string.printable)
+    filter(lambda x: x in printable, inputString)
     return inputString.encode('ascii', 'ignore').decode('ascii')
 
+def wikicategories(category):
+    page_py = wiki_wiki.page(category)
+    if len(category) > 2 and page_py.exists() and ("refer to:" != page_py.summary[-9:]):
+        return True
+    return False
 
 userId = set()
 itemId = set()
@@ -61,34 +74,34 @@ for result in tweets:
         userId.add(result.user.id)
 
     statuses = tweepy.Cursor(api.user_timeline,
-                             user_id=result.user.id, tweet_mode="extended").items(5)
+                             user_id=result.user.id, include_rts=False, exclude_replies=True, tweet_mode="extended").items(5)
     addDataRow(i, result.user.name, result.user.id, userwriter)
     for status in statuses:
-        if (not status.retweeted) and ('RT @' not in status.full_text) and (not status.in_reply_to_user_id)\
-                and result.id != status.id:
+        target_tweet = clean(status.full_text)
+        blob = TextBlob(target_tweet, pos_tagger=nltk_tagger)
+        if (True):
             try:
-                response = service.analyze(
-                    text=status.full_text,
-                    features=Features(sentiment=SentimentOptions(), categories=CategoriesOptions(),
-                                      keywords=KeywordsOptions())
-                ).get_result()
                 print(status.full_text)
-                doc = nlp("u"+deEmojify(status.full_text));
+                doc = nlp("u"+clean(status.full_text));
                 # sentiment analysis here
-                for keyword in response['keywords']:
-                    if searcher.searchTaxMap(keyword['text'].lower()):
-                        itemId.add(keyword['text'])
-                        addDataRow(i, keyword['text'], response['sentiment']['document']['score'], writer)
-                        addDataRow(i, keyword['text'], "", itemwriter)
+                keywords = blob.pos_tags
+                for taggedTuple in keywords:
+                    keyword = taggedTuple[0]
+                    tag = taggedTuple[1]
+                    if tag in good_PoS_Tags and wikicategories(keyword.lower()) and keyword.lower() != "gift":
+                        itemId.add(keyword)
+                        addDataRow(i, keyword, blob.sentiment.polarity, writer)
+                        addDataRow(i, keyword, "", itemwriter)
+
                 for ent in doc.ents:
                     if ent.label_ in good_labels:
                         try:
                             itemId.add(ent.text)
                             print("Entity:" + ent.text + ent.label_)
-                            addDataRow(i, ent.text, response['sentiment']['document']['score'], writer)
+                            addDataRow(i, ent.text, blob.sentiment.polarity, writer)
                         except:
                             print("Entity:" + ent.text+ent.label_)
-                            addDataRow(i, ent.text, response['sentiment']['document']['score'], writer)
+                            addDataRow(i, ent.text, blob.sentiment.polarity, writer)
 
                 if len(status.entities.get("media", "")) != 0:
                     imageList = status.entities.get("media", "");
@@ -104,14 +117,14 @@ for result in tweets:
                             if searcher.searchTaxMap(keyword['text']):
                                 try:
                                     itemId.add(keyword['text'])
-                                    addDataRow(i, eachObject["name"], response['sentiment']['document']['score'], writer)
+                                    addDataRow(i, eachObject["name"], blob.sentiment.polarity, writer)
                                 except:
-                                    addDataRow(i, eachObject["name"], response['sentiment']['document']['score'], writer)
+                                    addDataRow(i, eachObject["name"], blob.sentiment.polarity, writer)
             except:
                 response = {};
                 print("tweet has unsupported languages")
     i += 1
-
+    print(i)
 writefile.close()
 userwritefile.close()
 itemwritefile.close()
