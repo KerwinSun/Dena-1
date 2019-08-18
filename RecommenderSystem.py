@@ -26,7 +26,7 @@ from textblob import TextBlob
 from textblob.en.taggers import NLTKTagger
 
 from EbayProductFinding import getProductsForRecommender
-from SemanticNetRecomender2WikiepdiaAPI import wikicategories
+import wikipediaapi
 from TaxonomySearcher import TaxonomySearcher
 
 # helper methods to assist in sanitising tweets before analysis
@@ -37,13 +37,19 @@ def clean(inputString):
     filter(lambda x: x in printable, inputString)
     return inputString.encode('ascii', 'ignore').decode('ascii')
 
+def wikicategories(category):
+    wiki_wiki = wikipediaapi.Wikipedia('en')
+    page_py = wiki_wiki.page(category)
+    if len(category) > 2 and page_py.exists() and ("refer to:" != page_py.summary[-9:]):
+        return True
+    return False
 
 def line_pre_adder(filename, line_to_prepend):
     with open(filename, 'r') as original: data = original.read()
     with open(filename, 'w') as modified: modified.write(line_to_prepend + data)
 
 
-def recommendItemForUser(username):
+def recommendItemForUser(username,number):
     consumer_key = "uqKb1h9prIwbAVCqocBuqInFs"
     consumer_secret = "EXlWGr7VFTGJ00116M25mDWyNveORVkHVPGXHaAOsg1lwFUQn8"
     access_token = "2388347288-uEH2UbQnr2uZYCZDuvh93wD8UHZ3PMB15diH9tK"
@@ -83,12 +89,12 @@ def recommendItemForUser(username):
                     keyword = taggedTuple[0]
                     tag = taggedTuple[1]
                     if tag in good_PoS_Tags and wikicategories(keyword.lower()) and keyword.lower() != "gift":
-                        line_pre_adder("user-id-sentiment-category_and_score","-2,"+keyword + "," + str(blob.sentiment.polarity) +"\n")
+                        line_pre_adder("user-id-sentiment-category_and_score",number+","+keyword + "," + str(blob.sentiment.polarity) +"\n")
 
                 for ent in doc.ents:
                     if ent.label_ in good_labels:
                             print("Entity:" + ent.text + ent.label_)
-                            line_pre_adder("user-id-sentiment-category_and_score","-2,"+ent.text + "," + str(blob.sentiment.polarity)+"\n")
+                            line_pre_adder("user-id-sentiment-category_and_score",number+","+ent.text + "," + str(blob.sentiment.polarity)+"\n")
 
                 if len(status.entities.get("media", "")) != 0:
                     imageList = status.entities.get("media", "");
@@ -102,7 +108,7 @@ def recommendItemForUser(username):
                         os.remove("local-filename.jpg")
                         for eachObject in detections:
                             if searcher.searchTaxMap(keyword['text']):
-                                    line_pre_adder("user-id-sentiment-category_and_score", "-2,"+eachObject["name"] + "," + str(blob.sentiment.polarity)+"\n")
+                                    line_pre_adder("user-id-sentiment-category_and_score", number+","+eachObject["name"] + "," + str(blob.sentiment.polarity)+"\n")
 
             except:
                 response = {};
@@ -149,7 +155,7 @@ def get_top_n(predictions, n=10):
     return top_n
 
 
-recommendItemForUser("mike_pence")
+recommendItemForUser("ZO2_",-3)
 print("done")
 r_cols = ['user_id', 'item_id', 'rating']
 ratings = pd.read_csv('user-id-sentiment-category_and_score', names=r_cols)
