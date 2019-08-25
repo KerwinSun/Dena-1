@@ -27,19 +27,20 @@ def getProducts(categoricalEntityList,namedEntityList):
                     categoricalSearchSize = int(categoricalResponse.dict()['paginationOutput']['totalEntries'])
                     combinedSearchSize = int(combinedResponse.dict()['paginationOutput']['totalEntries'])
 
-                    searchScore = combinedSearchSize/min(namedSearchSize,categoricalSearchSize)
+                    if(namedSearchSize > 100 and categoricalSearchSize > 100):
+                        searchScore = combinedSearchSize/min(namedSearchSize,categoricalSearchSize)
 
-                    print('Finding Results for: ' + namedEntity[0] + ' ' + categoricalEntity[0])
-                    print('search size for ' + namedEntity[0] + '-' + str(namedSearchSize))
-                    print('search size for ' + categoricalEntity[0] + '-' + str(categoricalSearchSize))
+                        print('Finding Results for: ' + namedEntity[0] + ' ' + categoricalEntity[0])
+                        print('search size for ' + namedEntity[0] + '-' + str(namedSearchSize))
+                        print('search size for ' + categoricalEntity[0] + '-' + str(categoricalSearchSize))
 
-                    print('search size for ' + namedEntity[0] + ' ' + categoricalEntity[0] +
-                          '-' + str(combinedSearchSize))
+                        print('search size for ' + namedEntity[0] + ' ' + categoricalEntity[0] +
+                              '-' + str(combinedSearchSize))
 
-                    print('combined reduction value: ' + str(searchScore))
-                    print('------------------------------------------------------------------')
+                        print('combined reduction value: ' + str(searchScore))
+                        print('------------------------------------------------------------------')
 
-                    combinedEntityDict[namedEntity[0] + " " + categoricalEntity[0]] = str(searchScore)
+                        combinedEntityDict[namedEntity[0] + " " + categoricalEntity[0]] = str(searchScore)
 
             except ConnectionError as e:
                 print(e)
