@@ -13,7 +13,7 @@ import turicreate
 import tweepy
 import wikipediaapi
 from imageai.Detection import ObjectDetection
-from surprise import NormalPredictor, KNNBasic
+from surprise import NormalPredictor, KNNBasic, KNNWithMeans
 from surprise import Dataset
 from surprise import Reader
 from surprise.model_selection import cross_validate
@@ -54,12 +54,9 @@ def recommendItemForUser(username,number):
     consumer_secret = "EXlWGr7VFTGJ00116M25mDWyNveORVkHVPGXHaAOsg1lwFUQn8"
     access_token = "2388347288-uEH2UbQnr2uZYCZDuvh93wD8UHZ3PMB15diH9tK"
     access_token_secret = "RCXSN3rj4m04ECekNo3DnF2u7B4G7AJauZXs3DmbX14dc"
-    wiki_wiki = wikipediaapi.Wikipedia('en')
     auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
     auth.set_access_token(access_token, access_token_secret)
     api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
-    tweets = tweepy.Cursor(api.search,
-                           q="gift", lang="en", result_type='mixed').items(45);
     execution_path = os.getcwd()
     good_PoS_Tags = ["NN", "NNS", "NNP", "NNPS"]
     detector = ObjectDetection()
@@ -69,13 +66,11 @@ def recommendItemForUser(username,number):
     searcher = TaxonomySearcher();
     nlp = spacy.load("en_core_web_lg")
     nltk_tagger = NLTKTagger()
-    count = 0
     good_labels = ["PERSON", "FACILITY", "ORG", "GPE", "LOC", "PRODUCT", "EVENT", "WORK OF ART", "LANGUAGE"]
     user = api.get_user(username)
     print(user)
-    userid = -1;
     statuses = api.user_timeline(
-        user_id=user.id, include_rts=False, exclude_replies=True, tweet_mode="extended", count=100)
+        user_id=user.id, include_rts=False, exclude_replies=True, tweet_mode="extended", count=1)
     for status in statuses:
         target_tweet = clean(status.full_text)
         blob = TextBlob(target_tweet, pos_tagger=nltk_tagger)
@@ -89,12 +84,12 @@ def recommendItemForUser(username,number):
                     keyword = taggedTuple[0]
                     tag = taggedTuple[1]
                     if tag in good_PoS_Tags and wikicategories(keyword.lower()) and keyword.lower() != "gift":
-                        line_pre_adder("user-id-sentiment-category_and_score",number+","+keyword + "," + str(blob.sentiment.polarity) +"\n")
+                        line_pre_adder("user-id-sentiment-category_and_score",str(number)+","+keyword + "," + str(blob.sentiment.polarity) +"\n")
 
                 for ent in doc.ents:
                     if ent.label_ in good_labels:
                             print("Entity:" + ent.text + ent.label_)
-                            line_pre_adder("user-id-sentiment-category_and_score",number+","+ent.text + "," + str(blob.sentiment.polarity)+"\n")
+                            line_pre_adder("user-id-sentiment-category_and_score",str(number)+","+ent.text + "," + str(blob.sentiment.polarity)+"\n")
 
                 if len(status.entities.get("media", "")) != 0:
                     imageList = status.entities.get("media", "");
@@ -108,7 +103,7 @@ def recommendItemForUser(username,number):
                         os.remove("local-filename.jpg")
                         for eachObject in detections:
                             if searcher.searchTaxMap(keyword['text']):
-                                    line_pre_adder("user-id-sentiment-category_and_score", number+","+eachObject["name"] + "," + str(blob.sentiment.polarity)+"\n")
+                                    line_pre_adder("user-id-sentiment-category_and_score", str(number)+","+eachObject["name"] + "," + str(blob.sentiment.polarity)+"\n")
 
             except:
                 response = {};
@@ -154,47 +149,62 @@ def get_top_n(predictions, n=10):
 
     return top_n
 
+def recommendUser(user):
+    recommendItemForUser(user,-5)
+    r_cols = ['user_id', 'item_id', 'rating']
+    ratings = pd.read_csv('user-id-sentiment-category_and_score', names=r_cols)
+    reader = Reader(rating_scale=(-1, 1))
+    data = Dataset.load_from_df(ratings[['user_id', 'item_id', 'rating']], reader)
+    trainset = data.build_full_trainset();
+    cross_validate(NormalPredictor(), data, cv=2)
+    algo = KNNWithMeans()
+    cross_validate(algo, data, measures=['RMSE', 'MAE'], cv=5, verbose=True)
+    algo.fit(trainset)
+    testset = trainset.build_anti_testset()
+    predictions = algo.test(testset)
+    top_n = get_top_n(predictions, n=5)
+    print("TEST")
+    i = 0;
+    # Print the recommended items for each user
+    for uid, user_ratings in top_n.items():
+        if i == 1:
+            break
+        else:
+            print(uid, [iid for (iid, _) in user_ratings])
+            recItems = getProductsForRecommender(user_ratings)
+            i += 1
 
-recommendItemForUser("ZO2_",-3)
-print("done")
-r_cols = ['user_id', 'item_id', 'rating']
-ratings = pd.read_csv('user-id-sentiment-category_and_score', names=r_cols)
-items = pd.read_csv('item-id', names=['item_id', 'item_name', 'placeholder'])
-users = pd.read_csv('user-id',names=['user_id', 'user_name', 'twitter_id'])
-# n_items = ratings.item_id.unique().shape[0]
-# n_users = ratings.user_id.unique().shape[0]
-# data_matrix = np.zeros((n_users, n_items))
-# train_data = turicreate.SFrame(ratings)
-#
-#
-# #Training the model
-# item_sim_model = turicreate.item_similarity_recommender.create(train_data, user_id='user_id', item_id='item_id', target='rating', similarity_type='cosine')
-#
-# #Making recommendations
-# item_sim_recomm = item_sim_model.recommend(users=[1,2,3,4,5],k=5)
-# item_sim_recomm.print_rows(num_rows=25)
+    return recItems
 
 
-reader = Reader(rating_scale=(-1, 1))
-data = Dataset.load_from_df(ratings[['user_id', 'item_id', 'rating']], reader)
-trainset = data.build_full_trainset();
-cross_validate(NormalPredictor(), data, cv=2)
-algo = KNNBasic()
-cross_validate(algo, data, measures=['RMSE', 'MAE'], cv=5, verbose=True)
-algo.fit(trainset)
-testset = trainset.build_anti_testset()
-predictions = algo.test(testset)
-top_n = get_top_n(predictions, n=5)
-print("TEST")
-i = 0;
-# Print the recommended items for each user
-for uid, user_ratings in top_n.items():
-    if i == 2:
-        break
-    else:
-        print(uid, [iid for (iid, _) in user_ratings])
-        getProductsForRecommender(user_ratings)
-        i += 1
+    # #recommendItemForUser("Adorabledeion_",-3)
+# print("done")
+# r_cols = ['user_id', 'item_id', 'rating']
+# ratings = pd.read_csv('user-id-sentiment-category_and_score', names=r_cols)
+# items = pd.read_csv('item-id', names=['item_id', 'item_name', 'placeholder'])
+# users = pd.read_csv('user-id',names=['user_id', 'user_name', 'twitter_id'])
+# reader = Reader(rating_scale=(-1, 1))
+# data = Dataset.load_from_df(ratings[['user_id', 'item_id', 'rating']], reader)
+# trainset = data.build_full_trainset();
+# cross_validate(NormalPredictor(), data, cv=2)
+# algo = KNNWithMeans()
+# cross_validate(algo, data, measures=['RMSE', 'MAE'], cv=5, verbose=True)
+# algo.fit(trainset)
+# testset = trainset.build_anti_testset()
+# predictions = algo.test(testset)
+# top_n = get_top_n(predictions, n=5)
+# print("TEST")
+# i = 0;
+# # Print the recommended items for each user
+# for uid, user_ratings in top_n.items():
+#     if i == 1:
+#         break
+#     else:
+#         print(uid, [iid for (iid, _) in user_ratings])
+#         recItems = getProductsForRecommender(user_ratings)
+#         i += 1
+#
+# print(recItems)
 
 # for line in ratings.itertuples():
 #     data_matrix[line[1]-1, line[2]-1] = line[3]
