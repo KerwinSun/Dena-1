@@ -1,7 +1,9 @@
+from PIL import Image
 from ebaysdk.finding import Connection as Finding
 from ebaysdk.exception import ConnectionError
 from ebaysdk import finding
-
+import urllib
+import PIL;
 def getProducts(categoricalEntityList,namedEntityList):
 
     api = Finding(appid="KerwinSu-Dena-PRD-344818667-e4b5e25e", config_file='myebay.yaml')
@@ -49,16 +51,33 @@ def getProducts(categoricalEntityList,namedEntityList):
 
 
 def getProductsForRecommender(categoricalEntityList):
-
+    recItems = [len(categoricalEntityList)]
     for i in range(len(categoricalEntityList)):
         try:
+            print(categoricalEntityList[i])
             api = Finding(appid="KerwinSu-Dena-PRD-344818667-e4b5e25e", config_file='myebay.yaml')
-            namedResponse = api.execute('findItemsAdvanced', {'keywords': categoricalEntityList[i]})
-            result=namedResponse.json();
-            print(result);
+            namedResponse = api.execute('findItemsAdvanced', {'keywords': categoricalEntityList[i],'outputSelector':"PictureURLLarge"})
+            result=namedResponse.dict()
+            print(result["searchResult"]["item"][0]["title"]);
+            recItems.append(result["searchResult"]["item"][0]["title"])
+            try:
+                imageUrl = str(result["searchResult"]["item"][0]["pictureURLLarge"])
+                urllib.request.urlretrieve(imageUrl,
+                                   "Item"+str(i)+".jpg")
+                im1 = Image.open("Item"+str(i)+".jpg")
+                im_small = im1.resize((100, 100), Image.ANTIALIAS)
+                im_small.save("Item"+str(i)+".png")
+            except:
+                imageUrl = str(result["searchResult"]["item"][0]["galleryURL"])
+                urllib.request.urlretrieve(imageUrl,
+                                           "Item" + str(i) + ".jpg")
+                im1 = Image.open("Item" + str(i) + ".jpg")
+                im_small = im1.resize((100, 100), Image.ANTIALIAS)
+                im_small.save("Item" + str(i) + ".png")
         except ConnectionError as e:
             print(e)
             print(e.response.dict())
+    return recItems
 
 
 
