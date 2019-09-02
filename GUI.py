@@ -26,7 +26,8 @@ while True:
         window.FindElement('item0').Update("Item0.png")
         window.FindElement('item1').Update("Item1.png")
         window.FindElement('item2').Update("Item2.png")
-        window.FindElement('item3').Update("Item0.png")
+        window.FindElement('item3').Update("Item3.png")
+        window.FindElement('item4').Update("Item4.png")
         window.FindElement('items').Update(recItems)
     if event in (None, 'Cancel'):
         break

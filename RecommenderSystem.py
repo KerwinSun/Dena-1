@@ -70,7 +70,7 @@ def recommendItemForUser(username,number):
     user = api.get_user(username)
     print(user)
     statuses = api.user_timeline(
-        user_id=user.id, include_rts=False, exclude_replies=True, tweet_mode="extended", count=1)
+        user_id=user.id, include_rts=False, exclude_replies=True, tweet_mode="extended", count=20)
     for status in statuses:
         target_tweet = clean(status.full_text)
         blob = TextBlob(target_tweet, pos_tagger=nltk_tagger)
@@ -155,29 +155,25 @@ def recommendUser(user):
     ratings = pd.read_csv('user-id-sentiment-category_and_score', names=r_cols)
     reader = Reader(rating_scale=(-1, 1))
     data = Dataset.load_from_df(ratings[['user_id', 'item_id', 'rating']], reader)
-    trainset = data.build_full_trainset();
-    cross_validate(NormalPredictor(), data, cv=2)
+    iids = ratings['item_id'].unique()
+    iids50 = ratings.loc[ratings['user_id'] == -5,'item_id']
+    final_dataset = np.concatenate((iids,iids50.values))
+    final_dataset = final_dataset.astype('str')
+    pred = np.unique(final_dataset)
+    testset = [[5,item_id,1] for item_id in pred]
     algo = KNNWithMeans()
-    cross_validate(algo, data, measures=['RMSE', 'MAE'], cv=5, verbose=True)
+    trainset = data.build_full_trainset();
     algo.fit(trainset)
-    testset = trainset.build_anti_testset()
     predictions = algo.test(testset)
-    top_n = get_top_n(predictions, n=5)
-    print("TEST")
-    i = 0;
-    # Print the recommended items for each user
-    for uid, user_ratings in top_n.items():
-        if i == 1:
-            break
-        else:
-            print(uid, [iid for (iid, _) in user_ratings])
-            recItems = getProductsForRecommender(user_ratings)
-            i += 1
-
+    pred_ratings = np.array([pred.est for pred in predictions])
+    i_max = np.argpartition(pred_ratings,-5)[-5:]
+    iid = pred[i_max]
+    print(iid)
+    recItems = getProductsForRecommender(iid)
     return recItems
 
 
-    # #recommendItemForUser("Adorabledeion_",-3)
+# #recommendItemForUser("Adorabledeion_",-3)
 # print("done")
 # r_cols = ['user_id', 'item_id', 'rating']
 # ratings = pd.read_csv('user-id-sentiment-category_and_score', names=r_cols)
