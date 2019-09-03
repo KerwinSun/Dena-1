@@ -131,7 +131,9 @@ def doUserAnalysis(user):
     userid = user.id
 
     statuses = api.user_timeline(
-        user_id=userid, include_rts=False, exclude_replies=True, tweet_mode="extended", count = 100)
+        #define number of tweets to pick from
+
+        user_id=userid, include_rts=False, exclude_replies=True, tweet_mode="extended", count = 20)
 
     entityDict = {}
     NamedEntityDict = {}
@@ -239,6 +241,5 @@ def doUserAnalysis(user):
     sorted_categoricalEntityDict = sorted(CategoricalEntityDict.items(), key=operator.itemgetter(1), reverse=True)
     sorted_namedEntityDict = sorted(NamedEntityDict.items(), key=operator.itemgetter(1), reverse=True)
 
-    EbayProductFinding.getProducts(sorted_categoricalEntityDict, sorted_namedEntityDict)
-    return [sorted_namedEntityDict, sorted_categoricalEntityDict]
+    return EbayProductFinding.getProducts(sorted_categoricalEntityDict, sorted_namedEntityDict)
 
