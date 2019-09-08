@@ -30,7 +30,7 @@ window = sg.Window('Dena', layout)
 while True:
     event, values = window.Read()
 
-    if event == 'recomender':
+    if event == 'recommender':
         recItems = recommendUser(values[0])
         window.FindElement('item0').Update("Item0.png")
         window.FindElement('item1').Update("Item1.png")
