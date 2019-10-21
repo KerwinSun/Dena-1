@@ -12,3 +12,8 @@ python -m textblob.download_corpora
 
 wikipediaapi:
 pip3 install wikipedia-api
+
+Microsoft Visual C++ 14.0 is required. Get it with "Microsoft Visual C++ Build Tools": https://visualstudio.microsoft.com/downloads/
+
+surprise:
+pip install scikit-surprise
