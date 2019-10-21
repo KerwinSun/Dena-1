@@ -9,7 +9,6 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import spacy
-import turicreate
 import tweepy
 import wikipediaapi
 from imageai.Detection import ObjectDetection
