@@ -5,6 +5,9 @@ Compile Requirements:
 
 Required dependency packages 
 
+Tweepy:
+pip install tweepys
+
 Spacy:
 pip install -U spacy
 python -m spacy download en_core_web_sm
@@ -41,3 +44,5 @@ pip install scikit-surprise
 
 PySimpleGui:
 pip install PySimpleGUI
+
+
