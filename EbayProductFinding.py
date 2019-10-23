@@ -97,6 +97,8 @@ def getProductsForRecommender(categoricalEntityList):
             api = Finding(appid="KerwinSu-Dena-PRD-344818667-e4b5e25e", config_file='myebay.yaml')
             namedResponse = api.execute('findItemsAdvanced', {'keywords': categoricalEntityList[i],'outputSelector':"PictureURLLarge"})
             result=namedResponse.dict()
+            if(int(result["searchResult"]["_count"]) == 0):
+                continue
             print(result["searchResult"]["item"][0]["title"]);
             recItems.append(result["searchResult"]["item"][0]["title"])
             try:

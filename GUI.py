@@ -32,11 +32,11 @@ while True:
 
     if event == 'recommender':
         recItems = recommendUser(values[0])
-        window.FindElement('item0').Update("Item0.png")
-        window.FindElement('item1').Update("Item1.png")
-        window.FindElement('item2').Update("Item2.png")
-        window.FindElement('item3').Update("Item3.png")
-        window.FindElement('item4').Update("Item4.png")
+        window.FindElement('item0').Update("assets/Item0.png")
+        window.FindElement('item1').Update("assets/Item1.png")
+        window.FindElement('item2').Update("assets/Item2.png")
+        window.FindElement('item3').Update("assets/Item3.png")
+        window.FindElement('item4').Update("assets/Item4.png")
         window.FindElement('items').Update(recItems)
 
     if event == 'naive':
