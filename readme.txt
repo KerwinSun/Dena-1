@@ -21,7 +21,7 @@ pip3 install wikipedia-api
 
 Microsoft Visual C++ 14.0 is required. Get it with "Microsoft Visual C++ Build Tools": https://visualstudio.microsoft.com/downloads/
 
-TensorFlow (Must be below 2.0):
+TensorFlow (Must be below 2.0 % above 1.4.0):
 pip3 install --upgrade tensorflow 
 
 OpenCV:
@@ -31,7 +31,7 @@ Keras:
 pip3 install keras
 
 ImageAI:
-pip3 install keras
+pip3 install imageai --upgrade
 
 Ebay:
 pip install ebaysdk
