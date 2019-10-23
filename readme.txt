@@ -21,8 +21,8 @@ pip3 install wikipedia-api
 
 Microsoft Visual C++ 14.0 is required. Get it with "Microsoft Visual C++ Build Tools": https://visualstudio.microsoft.com/downloads/
 
-TensorFlow:
-pip3 install --upgrade tensorflow
+TensorFlow (Must be below 2.0):
+pip3 install --upgrade tensorflow 
 
 OpenCV:
 pip3 install opencv-python
@@ -45,4 +45,5 @@ pip install scikit-surprise
 PySimpleGui:
 pip install PySimpleGUI
 
-
+resnet50_coco_best_v2.0.1.h5 required can be found in (Must be placed in Dena Folder):
+https://github.com/OlafenwaMoses/ImageAI/releases/tag/1.0/
