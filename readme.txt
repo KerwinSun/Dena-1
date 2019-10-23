@@ -10,7 +10,7 @@ pip install tweepys
 
 Spacy:
 pip install -U spacy
-python -m spacy download en_core_web_sm
+python -m spacy download en_core_web_lg
 
 Textblob:
 pip install -U textblob
