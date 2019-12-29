@@ -6,7 +6,7 @@ Compile Requirements:
 Required dependency packages 
 
 Tweepy:
-pip install tweepys
+pip install tweepy
 
 Spacy:
 pip install -U spacy
